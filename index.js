@@ -11,111 +11,67 @@ const sockserv = new SockServer(httpServer, {
   },
 });
 
-let myid_storage = {};
-
-let connected = [];
 let waiting = [];
 
-const check_connect = () => {
+const request = (sock) => {
+  if (!waiting.includes(sock)) {
+    console.log(`[${sock.id}] requested peer`);
+
+    waiting.push(sock);
+    tryCouple();
+  } else {
+    console.log(`[${sock.id}] peer request ignored`);
+  }
+};
+
+const tryCouple = () => {
+  console.log("trying to couple");
+  console.log("waiting: " + waiting.map((sock) => sock.id).join(", "));
+
   if (waiting.length === 2) {
-    let peer1 = waiting[0];
-    let peer2 = waiting[1];
+    console.log("coupling");
 
-    console.log(`[${peer1.id} ♥ ${peer2.id}] 2 waiting! making them happy`);
-
-    myid_storage[peer1.myid] ??= {};
-    myid_storage[peer2.myid] ??= {};
-    myid_storage[peer1.myid].last_peer = performance.now();
-    myid_storage[peer2.myid].last_peer = performance.now();
-
-    peer1.emit("peer_found");
-    peer2.emit("peer_found");
-
-    const peer1messagehandler = (msg) => peer2.emit("message", msg);
-    const peer2messagehandler = (msg) => peer1.emit("message", msg);
-    peer1.on("message", peer1messagehandler);
-    peer2.on("message", peer2messagehandler);
-
-    const peer1disconnecthandler = () => {
-      peer2.off("message", peer2messagehandler);
-      peer2.off("disconnect", peer2disconnecthandler);
-
-      peer2.emit("peer_lost");
-      waiting.push(peer2);
-      peer2.emit("queued");
-      check_connect();
-    };
-    const peer2disconnecthandler = () => {
-      peer1.off("message", peer1messagehandler);
-      peer1.off("disconnect", peer1disconnecthandler);
-
-      peer1.emit("peer_lost");
-      waiting.push(peer1);
-      peer1.emit("queued");
-      check_connect();
-    };
-
-    peer1.on("disconnect", peer1disconnecthandler);
-    peer2.on("disconnect", peer2disconnecthandler);
+    waiting[0].data.peer = waiting[1];
+    waiting[0].emit("found_peer");
+    waiting[1].data.peer = waiting[0];
+    waiting[1].emit("found_peer");
 
     waiting = [];
   }
 };
 
-sockserv.on("connection", (socket) => {
-  console.log(`[${socket.id}] got connection!`);
+const leave = (sock) => {
+  console.log(`[${sock.id}] leaving`);
 
-  socket.on("identify", (id) => {
-    if (connected.some((it) => it.myid === id)) {
-      console.log(`[${socket.id}] tried to identify as ${id} (already online)`);
-      socket.emit("already_online");
-      socket.disconnect();
-      return;
+  if (waiting.includes(sock)) {
+    console.log("removing from waitlist");
+    waiting = waiting.filter((it) => it !== sock);
+  }
+
+  if (sock.data.peer) {
+    console.log("notifying peer");
+    sock.data.peer.emit("peer_left");
+    delete sock.data.peer.data.peer;
+  }
+};
+
+sockserv.on("connection", (sock) => {
+  console.log(`[${sock.id}] connected`);
+
+  sock.on("request_peer", () => request(sock));
+
+  sock.on("message", (msg) => {
+    if (sock.data.peer) {
+      console.log(`[${sock.id}] sent message`);
+
+      sock.data.peer.emit("message", msg);
+    } else {
+      console.log(`[${sock.id}] ignoring message`);
     }
-
-    console.log(`[${socket.id}] identified as ${id}`);
-    socket.myid = id;
-    connected.push(socket);
-
-    waiting.push(socket);
-    socket.emit("queued");
-    check_connect();
-
-    socket.on("disconnect", () => {
-      connected = connected.filter((it) => it.id !== socket.id);
-      waiting = waiting.filter((it) => it.id !== socket.id);
-      console.log(`[${socket.id}] disconnected`);
-    });
   });
 
-  /*
-  if (waiting.length === 0) {
-    console.log(`[${socket.id}] no one waiting, so let this socket wait`);
-
-    waiting.push(socket);
-    socket.on(
-      "disconnect",
-      () => (waiting = waiting.filter((it) => it !== socket))
-    );
-  } else {
-    console.log(`[${socket.id}] someone waiting, let's connect them`);
-
-    const peer = waiting.pop();
-
-    socket.on("message", (e) => {
-      peer.emit("message", e);
-    });
-    peer.on("message", (e) => {
-      socket.emit("message", e);
-    });
-
-    socket.emit("found_peer");
-    peer.emit("found_peer");
-
-    socket.on("disconnect", () => peer.emit("peer_lost"));
-    peer.on("disconnect", () => socket.emit("peer_lost"));
-  }
-  */
+  sock.on("leave_peer", () => leave(sock));
+  sock.on("disconnect", () => leave(sock));
 });
 
 app.get("/", (req, res) => {
