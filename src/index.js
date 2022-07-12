@@ -58,7 +58,7 @@ sockserv.on("connection", (sock) => {
   sock.on("disconnect", () => leave(sock));
 });
 
-const port = 3001;
+const port = 8080;
 httpServer.listen(port, () => {
   console.log(`Server listening on port ${port}.`);
 });
