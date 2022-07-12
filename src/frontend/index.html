@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+
+    <title>Hangover</title>
+    <link rel="icon" href="./icon.svg" />
+    <link rel="manifest" href="./app.webmanifest" />
+    <link rel="apple-touch-icon" href="./icon_apple.png" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+
+  <body>
+    <!-- view "start" -->
+    <main id="view-start" class="view active">
+      <button id="view-start-search">Gesprächspartner suchen</button>
+    </main>
+
+    <!-- view "searching" -->
+    <main id="view-searching" class="view">
+      <div id="view-searching-info">Suche läuft…</div>
+      <button id="view-searching-cancel">Abbrechen</button>
+    </main>
+
+    <!-- view "chat" -->
+    <main id="view-chat" class="view">
+      <div id="view-chat-top">
+        <button id="view-chat-leave">Verlassen</button>
+      </div>
+
+      <div id="view-chat-log"></div>
+      <div id="view-chat-log-alternate">
+        Niemand hat bisher eine Nachricht geschrieben.
+      </div>
+
+      <form id="view-chat-form">
+        <input
+          id="view-chat-input"
+          type="text"
+          autocomplete="off"
+          placeholder="Deine Nachricht"
+        />
+        <input type="submit" value="Senden" />
+      </form>
+    </main>
+
+    <!-- view "peer left" -->
+    <main id="view-peer-left" class="view">
+      <div id="view-peer-left-info">
+        Dein Gesprächspartner hat dich verlassen.
+      </div>
+      <button id="view-peer-left-ok">OK</button>
+    </main>
+
+    <script src="./socket.io/socket.io.min.js"></script>
+    <script type="module" src="./index.js"></script>
+  </body>
+</html>

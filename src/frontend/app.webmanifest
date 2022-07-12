@@ -1,0 +1,19 @@
+{
+  "id": ".",
+  "name": "Hangover",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any"
+    },
+    {
+      "src": "./icon_maskable.svg",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ],
+  "scope": ".",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "white"
+}

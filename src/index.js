@@ -1,36 +1,30 @@
 import { createServer } from "http";
 import express from "express";
 import { Server as SockServer } from "socket.io";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+
+const dir = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
-const httpServer = createServer(app);
+app.set("env", "production");
+app.set("x-powered-by", false);
+app.use(express.static(join(dir, "frontend")));
 
-const sockserv = new SockServer(httpServer, {
-  cors: {
-    origin: "*",
-  },
-});
+const httpServer = createServer(app);
+const sockserv = new SockServer(httpServer);
 
 let waiting = [];
 
 const request = (sock) => {
   if (!waiting.includes(sock)) {
-    console.log(`[${sock.id}] requested peer`);
-
     waiting.push(sock);
     tryCouple();
-  } else {
-    console.log(`[${sock.id}] peer request ignored`);
   }
 };
 
 const tryCouple = () => {
-  console.log("trying to couple");
-  console.log("waiting: " + waiting.map((sock) => sock.id).join(", "));
-
   if (waiting.length === 2) {
-    console.log("coupling");
-
     waiting[0].data.peer = waiting[1];
     waiting[0].emit("found_peer");
     waiting[1].data.peer = waiting[0];
@@ -41,15 +35,9 @@ const tryCouple = () => {
 };
 
 const leave = (sock) => {
-  console.log(`[${sock.id}] leaving`);
-
-  if (waiting.includes(sock)) {
-    console.log("removing from waitlist");
-    waiting = waiting.filter((it) => it !== sock);
-  }
+  waiting = waiting.filter((it) => it !== sock);
 
   if (sock.data.peer) {
-    console.log("notifying peer");
     sock.data.peer.emit("peer_left");
 
     delete sock.data.peer.data.peer;
@@ -58,17 +46,11 @@ const leave = (sock) => {
 };
 
 sockserv.on("connection", (sock) => {
-  console.log(`[${sock.id}] connected`);
-
   sock.on("request_peer", () => request(sock));
 
   sock.on("message", (msg) => {
     if (sock.data.peer) {
-      console.log(`[${sock.id}] sent message`);
-
       sock.data.peer.emit("message", msg);
-    } else {
-      console.log(`[${sock.id}] ignoring message`);
     }
   });
 
@@ -76,10 +58,7 @@ sockserv.on("connection", (sock) => {
   sock.on("disconnect", () => leave(sock));
 });
 
-app.get("/", (req, res) => {
-  res.send("Hello World!");
-});
-
 const port = 3001;
-httpServer.listen(port);
-console.log(`Example app listening on port ${port}`);
+httpServer.listen(port, () => {
+  console.log(`Server listening on port ${port}.`);
+});
