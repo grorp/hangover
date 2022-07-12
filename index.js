@@ -51,7 +51,9 @@ const leave = (sock) => {
   if (sock.data.peer) {
     console.log("notifying peer");
     sock.data.peer.emit("peer_left");
+
     delete sock.data.peer.data.peer;
+    delete sock.data.peer;
   }
 };
 
