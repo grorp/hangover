@@ -48,9 +48,9 @@ const leave = (sock) => {
 sockserv.on("connection", (sock) => {
   sock.on("request_peer", () => request(sock));
 
-  sock.on("message", (msg) => {
+  sock.on("message", (content) => {
     if (sock.data.peer) {
-      sock.data.peer.emit("message", msg);
+      sock.data.peer.emit("message", content);
     }
   });
 

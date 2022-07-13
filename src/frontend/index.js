@@ -89,8 +89,8 @@ viewChatForm.addEventListener("submit", (event) => {
   event.preventDefault();
 
   const content = viewChatInput.value;
-  socket.emit("message", content);
   message(SENDER.YOU, content);
+  socket.emit("message", content);
   viewChatForm.reset();
 });
 
