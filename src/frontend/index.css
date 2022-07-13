@@ -100,6 +100,10 @@ input[type="text"] {
 
 /* view "peer left */
 
+#view-peer-left {
+  padding: 2rem;
+}
+
 #view-peer-left-info {
   margin: auto;
 }
@@ -108,4 +112,14 @@ input[type="text"] {
   position: absolute;
   right: 1rem;
   bottom: 1rem;
+}
+
+/* view "no connection */
+
+#view-no-connection {
+  padding: 2rem;
+}
+
+#view-no-connection-info {
+  margin: auto;
 }

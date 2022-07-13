@@ -24,6 +24,8 @@ const viewChatInput = id("view-chat-input");
 const viewPeerLeft = id("view-peer-left");
 const viewPeerLeftOK = id("view-peer-left-ok");
 
+const viewNoConnection = id("view-no-connection");
+
 viewStartSearch.addEventListener("click", () => {
   deactivate(viewStart);
   activate(viewSearching);
@@ -104,19 +106,41 @@ viewChatLeave.addEventListener("click", () => {
   socket.emit("leave_peer");
 
   deactivate(viewChat);
-  activate(viewStart);
   viewChatReset();
+  activate(viewStart);
 });
 
 socket.on("peer_left", () => {
   if (isActive(viewChat)) {
     deactivate(viewChat);
-    activate(viewPeerLeft);
     viewChatReset();
+    activate(viewPeerLeft);
   }
 });
 
 viewPeerLeftOK.addEventListener("click", () => {
   deactivate(viewPeerLeft);
   activate(viewStart);
+});
+
+const handleDisconnect = () => {
+  const view = document.querySelector(".view.active");
+
+  if (view !== viewNoConnection) {
+    deactivate(view);
+    if (view === viewChat) {
+      viewChatReset();
+    }
+    activate(viewNoConnection);
+  }
+};
+
+socket.on("connect_error", handleDisconnect);
+socket.on("disconnect", handleDisconnect);
+
+socket.on("connect", () => {
+  if (isActive(viewNoConnection)) {
+    deactivate(viewNoConnection);
+    activate(viewStart);
+  }
 });
