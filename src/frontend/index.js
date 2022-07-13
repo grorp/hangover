@@ -22,6 +22,7 @@ const viewChatForm = id("view-chat-form");
 const viewChatInput = id("view-chat-input");
 
 const viewPeerLeft = id("view-peer-left");
+const viewPeerLeftOK = id("view-peer-left-ok");
 
 viewStartSearch.addEventListener("click", () => {
   deactivate(viewStart);
@@ -46,31 +47,9 @@ socket.on("found_peer", () => {
   }
 });
 
-socket.on("peer_left", () => {
-  if (isActive(viewChat)) {
-    [...viewChatLog.children].forEach((el) => el.remove());
-
-    deactivate(viewChat);
-    activate(viewPeerLeft);
-  }
-});
-
-id("view-peer-left-ok").addEventListener("click", () => {
-  deactivate(viewPeerLeft);
-  activate(viewStart);
-});
-
-viewChatLeave.addEventListener("click", () => {
-  socket.emit("leave_peer");
-  [...viewChatLog.children].forEach((el) => el.remove());
-
-  deactivate(viewChat);
-  activate(viewStart);
-});
-
 const SENDER = Object.freeze({
-  YOU: "YOU",
-  SOMEONE: "SOMEONE",
+  YOU: 0,
+  SOMEONE: 1,
 });
 
 const message = (sender, content) => {
@@ -82,8 +61,9 @@ const message = (sender, content) => {
 
   const span = document.createElement("span");
   span.className = "sender";
-  const senderName = sender === SENDER.YOU ? "Du" : "Jemand";
-  span.appendChild(document.createTextNode(`[${senderName}]`));
+  span.appendChild(
+    document.createTextNode(`[${sender === SENDER.YOU ? "Du" : "Jemand"}]`)
+  );
   div.appendChild(span);
 
   div.appendChild(document.createTextNode(" "));
@@ -105,6 +85,7 @@ const message = (sender, content) => {
 
 viewChatForm.addEventListener("submit", (event) => {
   event.preventDefault();
+
   const content = viewChatInput.value;
   socket.emit("message", content);
   message(SENDER.YOU, content);
@@ -115,4 +96,27 @@ socket.on("message", (content) => {
   if (isActive(viewChat)) {
     message(SENDER.SOMEONE, content);
   }
+});
+
+const viewChatReset = () => (viewChatLog.innerHTML = "");
+
+viewChatLeave.addEventListener("click", () => {
+  socket.emit("leave_peer");
+
+  deactivate(viewChat);
+  activate(viewStart);
+  viewChatReset();
+});
+
+socket.on("peer_left", () => {
+  if (isActive(viewChat)) {
+    deactivate(viewChat);
+    activate(viewPeerLeft);
+    viewChatReset();
+  }
+});
+
+viewPeerLeftOK.addEventListener("click", () => {
+  deactivate(viewPeerLeft);
+  activate(viewStart);
 });
