@@ -1,18 +1,32 @@
-import { createServer } from "http";
 import express from "express";
 import { Server as SockServer } from "socket.io";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
+import { readFileSync } from "node:fs";
+import { createServer as createServerHTTP } from "node:http";
+import { createServer as createServerHTTPS } from "node:https";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const dir = dirname(fileURLToPath(import.meta.url));
+
+const httpServer = createServerHTTP((req, res) => {
+  res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+  res.end();
+});
 
 const app = express();
 app.set("env", "production");
 app.set("x-powered-by", false);
 app.use(express.static(join(dir, "frontend")));
 
-const httpServer = createServer(app);
-const sockserv = new SockServer(httpServer);
+const httpsServer = createServerHTTPS(
+  {
+    key: readFileSync(process.env.TLS_KEY),
+    cert: readFileSync(process.env.TLS_CERT),
+  },
+  app
+);
+
+const sockServer = new SockServer(httpsServer);
 
 let waiting = [];
 
@@ -45,7 +59,7 @@ const leave = (sock) => {
   }
 };
 
-sockserv.on("connection", (sock) => {
+sockServer.on("connection", (sock) => {
   sock.on("request_peer", () => request(sock));
 
   sock.on("message", (content) => {
@@ -58,7 +72,5 @@ sockserv.on("connection", (sock) => {
   sock.on("disconnect", () => leave(sock));
 });
 
-const port = 8080;
-httpServer.listen(port, () => {
-  console.log(`Server listening on port ${port}.`);
-});
+httpServer.listen(80, () => console.log("HTTP server started."));
+httpsServer.listen(443, () => console.log("HTTPS server started."));
